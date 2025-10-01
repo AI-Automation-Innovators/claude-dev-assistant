@@ -1,0 +1,22 @@
+{
+  "name": "claude-dev-assistant",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Claude-powered dev assistant CLI + PR review",
+  "scripts": {
+    "dev:chat": "tsx src/cli/chat.ts",
+    "dev:review": "tsx src/cli/review.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.21.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.3",
+    "@types/node": "^22.7.4"
+  }
+}
+
+
