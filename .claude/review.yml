@@ -1,0 +1,14 @@
+model: ${ANTHROPIC_MODEL:-claude-3-5-sonnet-latest}
+max_tokens: 1400
+temperature: 0.2
+
+style:
+  tone: "pragmatic, direct, low-fluff"
+  sections: ["Summary", "Risk", "Suggested Fixes", "Concerns", "Perf", "DX"]
+  bullets_max: 6
+  code_suggestions: true
+  inline_patch: true        # include small unified-diff hunks when helpful
+  emoji_headings: false
+  label_severity: true      # tag items: [high][medium][low]
+  ask_for_clarifications: false
+  enforce_length: "short"   # short | medium | long
