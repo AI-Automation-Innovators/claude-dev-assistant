@@ -1,6 +1,12 @@
 {
-  "permissionMode": "manual",
-  "defaultModel": "claude-3-5-sonnet-latest",
-  "allowedTools": ["Read", "Write", "Grep", "Glob", "Bash"],
+  "permissions": "manual",
+  "tools": ["read", "write", "grep", "glob", "bash", "git"],
+  "default_model": "claude-3-5-sonnet-latest",
+  "style": {
+    "tone": "concise",
+    "format": "markdown"
+  },
   "notes": "Keep edits small. Prefer sandbox/ for drafts."
 }
+
+
