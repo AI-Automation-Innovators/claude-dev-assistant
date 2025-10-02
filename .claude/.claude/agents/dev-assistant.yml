@@ -1,0 +1,7 @@
+name: Dev Assistant
+model: claude-3-5-sonnet-latest
+description: General coding + helper agent
+tools: [read, write, grep, glob, bash, git]
+style:
+  tone: friendly, pragmatic
+  max_response: 400 tokens
