@@ -1,0 +1,80 @@
+name: Claude Repo Audit
+
+on:
+  # manual button in Actions tab
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: "Audit scope (repo | src | workflows)"
+        required: false
+        default: "repo"
+
+  # optional: run when you comment `/claude review`
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  audit:
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/claude review'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install
+        run: npm ci || npm i
+
+      - name: Build & Test (best-effort)
+        continue-on-error: true
+        run: |
+          npm run build || true
+          npm test || true
+
+      - name: Gather context files
+        run: |
+          node -e "const fs=require('fs');const path=require('path');
+          const pick=['package.json','tsconfig.json','README.md','CLAUDE.md','.claude/settings.json'];
+          const extra=['.github/workflows']; let out=[];
+          const walk=(p)=>{if(!fs.existsSync(p))return; if(fs.statSync(p).isDirectory()){
+            for(const f of fs.readdirSync(p)) walk(path.join(p,f))
+          } else if(p.endsWith('.yml')||p.endsWith('.yaml')) { out.push(p) } }
+          extra.forEach(walk);
+          const bundle=['FILES:\n'+pick.filter(f=>fs.existsSync(f)).join('\n')+'\n',
+            ...pick.filter(f=>fs.existsSync(f)).map(f=>'--- '+f+' ---\n'+fs.readFileSync(f,'utf8')),
+            ...out.map(f=>'--- '+f+' ---\n'+fs.readFileSync(f,'utf8'))];
+          fs.writeFileSync('audit_context.txt', bundle.join('\n\n'));"
+
+      - name: Ask Claude for repo audit
+        run: node .github/workflows/scripts/repo-audit.js > audit.txt
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL || 'claude-3-5-sonnet-latest' }}
+
+      - name: Post report (issue or comment)
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const core = require('@actions/core');
+            const fs = require('fs');
+            const body = fs.readFileSync('audit.txt','utf8').slice(0, 65000);
+            if (context.eventName === 'issue_comment') {
+              await github.rest.issues.createComment({ ...context.repo, issue_number: context.payload.issue.number, body });
+            } else {
+              // open (or reuse) a housekeeping issue
+              const title = "🔍 Claude Repo Audit";
+              const {data:issues} = await github.rest.issues.listForRepo({ ...context.repo, state:'open', labels:'bot:claude-audit' });
+              if (issues.length) {
+                await github.rest.issues.createComment({ ...context.repo, issue_number: issues[0].number, body });
+              } else {
+                const {data:issue} = await github.rest.issues.create({ ...context.repo, title, body, labels:['bot:claude-audit'] });
+              }
+            }
