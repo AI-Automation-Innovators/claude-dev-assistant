@@ -5,3 +5,4 @@
   "dev:review": "tsx src/cli/review.ts"
 }
 
+chore: add build and test scripts
